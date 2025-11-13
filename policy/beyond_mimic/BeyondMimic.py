@@ -221,14 +221,16 @@ class BeyondMimic(FSMState):
         # Log observations before policy inference
         if self.enable_logging and self.data_logger:
             obs_log_data = {
+                "robot_quat": robot_quat,
+                "raw_qj": self.state_cmd.q[self.mj2lab],
+                "raw_qvel": dqj[self.mj2lab],
+                "base_troso_yaw": np.array([base_troso_yaw], dtype=np.float32),
+                "base_troso_roll": np.array([base_troso_roll], dtype=np.float32),
+                "base_troso_pitch": np.array([base_troso_pitch], dtype=np.float32),
                 "ref_joint_pos": self.ref_joint_pos.squeeze(0),
                 "ref_joint_vel": self.ref_joint_vel.squeeze(0),
                 "motion_anchor_ori": motion_anchor_ori_b[:,:2].reshape(-1),
                 "ang_vel": ang_vel,
-                "joint_pos": qj,
-                "joint_vel": dqj[self.mj2lab],
-                "prev_action": self.action.squeeze(0),
-                "full_obs": mimic_obs_buf,
                 "counter_step": np.array([self.counter_step], dtype=np.int32),
             }
             self.data_logger.log("observations", obs_log_data)
@@ -245,8 +247,7 @@ class BeyondMimic(FSMState):
         if self.enable_logging and self.data_logger:
             action_log_data = {
                 "raw_action": self.action.squeeze(0),
-                "scaled_action": target_dof_pos_lab.squeeze(0),
-                "target_pos_full": target_dof_pos_mj,
+                "target_pos_mj": target_dof_pos_mj,
                 "kps": self.kps_lab,
                 "kds": self.kds_lab,
                 "counter_step": np.array([self.counter_step], dtype=np.int32),
@@ -290,3 +291,4 @@ class BeyondMimic(FSMState):
         else:
             self.state_cmd.skill_cmd = FSMCommand.INVALID
             return FSMStateName.SKILL_BEYOND_MIMIC
+       
