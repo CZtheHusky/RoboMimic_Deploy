@@ -21,7 +21,8 @@ class FSMMode(Enum):
     NORMAL = 2
 
 class FSM:
-    def __init__(self, state_cmd:StateAndCmd, policy_output:PolicyOutput):
+    def __init__(self, state_cmd:StateAndCmd, policy_output:PolicyOutput, 
+                 enable_logging: bool = False, log_dir: str = "./logs"):
         self.state_cmd = state_cmd
         self.policy_output = policy_output
         self.cur_policy : FSMState
@@ -38,7 +39,10 @@ class FSM:
         self.skill_cast_policy = SkillCast(state_cmd, policy_output)
         self.kick_policy = Kick(state_cmd, policy_output)
         self.kungfu2_policy = KungFu2(state_cmd, policy_output)
-        self.beyond_mimic_policy = BeyondMimic(state_cmd, policy_output)
+        # BeyondMimic with optional logging support
+        self.beyond_mimic_policy = BeyondMimic(state_cmd, policy_output, 
+                                               enable_logging=enable_logging, 
+                                               log_dir=log_dir)
         
         print("initalized all policies!!!")
         

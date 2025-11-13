@@ -9,10 +9,11 @@ import onnx
 import onnxruntime
 import torch
 import os
+from common.data_logger import StreamingPickleLogger
 
 
 class BeyondMimic(FSMState):
-    def __init__(self, state_cmd:StateAndCmd, policy_output:PolicyOutput):
+    def __init__(self, state_cmd:StateAndCmd, policy_output:PolicyOutput, enable_logging: bool = False, log_dir: str = "./logs/beyond_mimic"):
         super().__init__()
         self.state_cmd = state_cmd
         self.policy_output = policy_output
@@ -21,6 +22,19 @@ class BeyondMimic(FSMState):
         self.motion_phase = 0
         self.counter_step = 0
         self.ref_motion_phase = 0
+        
+        # Initialize data logger
+        self.enable_logging = enable_logging
+        self.data_logger = None
+        if enable_logging:
+            self.data_logger = StreamingPickleLogger(
+                log_dir=log_dir,
+                batch_size=50,  # Write every 50 samples
+                flush_interval=3.0,  # Flush every 3 seconds
+                max_queue_size=5000
+            )
+            self.data_logger.start()
+            print(f"Data logging enabled. Logs will be saved to: {log_dir}")
         
         current_dir = os.path.dirname(os.path.abspath(__file__))
         config_path = os.path.join(current_dir, "config", "BeyondMimic.yaml")
@@ -203,6 +217,22 @@ class BeyondMimic(FSMState):
         # obs0 是网络观测，obs1 是当前时间步，用于输出参考动作信息
         observation[self.input_name[0]] = mimic_obs_tensor
         observation[self.input_name[1]] = np.array([[self.counter_step]], dtype=np.float32)
+        
+        # Log observations before policy inference
+        if self.enable_logging and self.data_logger:
+            obs_log_data = {
+                "ref_joint_pos": self.ref_joint_pos.squeeze(0),
+                "ref_joint_vel": self.ref_joint_vel.squeeze(0),
+                "motion_anchor_ori": motion_anchor_ori_b[:,:2].reshape(-1),
+                "ang_vel": ang_vel,
+                "joint_pos": qj,
+                "joint_vel": dqj[self.mj2lab],
+                "prev_action": self.action.squeeze(0),
+                "full_obs": mimic_obs_buf,
+                "counter_step": np.array([self.counter_step], dtype=np.int32),
+            }
+            self.data_logger.log("observations", obs_log_data)
+        
         outputs_result = self.ort_session.run(None, observation)
 
         # 处理多个输出
@@ -210,6 +240,18 @@ class BeyondMimic(FSMState):
         target_dof_pos_mj = np.zeros(29)
         target_dof_pos_lab = self.action * self.action_scale_lab + self.default_angles_lab
         target_dof_pos_mj[self.mj2lab] = target_dof_pos_lab.squeeze(0)
+        
+        # Log actions after policy inference
+        if self.enable_logging and self.data_logger:
+            action_log_data = {
+                "raw_action": self.action.squeeze(0),
+                "scaled_action": target_dof_pos_lab.squeeze(0),
+                "target_pos_full": target_dof_pos_mj,
+                "kps": self.kps_lab,
+                "kds": self.kds_lab,
+                "counter_step": np.array([self.counter_step], dtype=np.int32),
+            }
+            self.data_logger.log("actions", action_log_data)
         
         self.policy_output.actions = target_dof_pos_mj
         self.policy_output.kps[self.mj2lab] = self.kps_lab
@@ -220,11 +262,17 @@ class BeyondMimic(FSMState):
 
     def exit(self):
         self.action = np.zeros(23, dtype=np.float32)
-        self.action_buf = np.zeros(23 * self.history_length, dtype=np.float32)
+        self.action_buf = np.zeros(23, dtype=np.float32)
         self.ref_motion_phase = 0.
-        self.ref_motion_phase_buf = np.zeros(1 * self.history_length, dtype=np.float32)
+        self.ref_motion_phase_buf = np.zeros(1, dtype=np.float32)
         self.motion_time = 0
         self.counter_step = 0
+        
+        # Stop data logger when exiting
+        if self.enable_logging and self.data_logger:
+            print("Flushing data logger...")
+            self.data_logger.stop()
+            print(f"Data logging stats: {self.data_logger.get_stats()}")
         
         print("exited")
 
