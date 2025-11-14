@@ -10,7 +10,7 @@ import pickle
 import numpy as np
 import time
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Callable
 from datetime import datetime
 import gzip
 
@@ -34,10 +34,12 @@ class DataLogger:
         flush_interval: float = 5.0,  # Flush every N seconds
         max_queue_size: int = 10000,
         compress: bool = False,
+        file_prefix: str = "",
     ):
         """
         Initialize the data logger.
         
+        self.file_prefix = file_prefix
         Args:
             log_dir: Directory to store log files
             format: File format ("jsonl", "pickle", "pickle_gz")
@@ -108,6 +110,28 @@ class DataLogger:
         
         print(f"DataLogger stopped. Total samples logged: {self.total_samples}")
         
+    def stop_async(self, timeout: float = 10.0, on_complete: Optional[Callable[[Dict[str, Any]], None]] = None):
+        """Stop the logger without blocking the caller.
+        Spawns a helper thread that calls stop() and then invokes on_complete(stats)
+        if provided. Returns immediately.
+        """
+        if not self.running:
+            return None
+        
+        def _do_stop():
+            try:
+                self.stop(timeout=timeout)
+            finally:
+                if on_complete is not None:
+                    try:
+                        on_complete(self.get_stats())
+                    except Exception:
+                        pass
+        t = threading.Thread(target=_do_stop, daemon=True)
+        t.start()
+        return t
+
+
     def log(self, data_name: str, data: Dict[str, np.ndarray]):
         """
         Log data asynchronously.
@@ -273,10 +297,12 @@ class StreamingPickleLogger:
         batch_size: int = 100,
         flush_interval: float = 5.0,
         max_queue_size: int = 10000,
+        file_prefix: str = "",
     ):
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
         
+        self.file_prefix = file_prefix
         self.batch_size = batch_size
         self.flush_interval = flush_interval
         
@@ -318,6 +344,28 @@ class StreamingPickleLogger:
         
         print(f"StreamingPickleLogger stopped. Total samples: {self.total_samples}")
         
+
+    def stop_async(self, timeout: float = 10.0, on_complete: Optional[Callable[[Dict[str, Any]], None]] = None):
+        """Stop the logger without blocking the caller.
+        Spawns a helper thread that calls stop() and then invokes on_complete(stats)
+        if provided. Returns immediately.
+        """
+        if not self.running:
+            return None
+        
+        def _do_stop():
+            try:
+                self.stop(timeout=timeout)
+            finally:
+                if on_complete is not None:
+                    try:
+                        on_complete(self.get_stats())
+                    except Exception:
+                        pass
+        t = threading.Thread(target=_do_stop, daemon=True)
+        t.start()
+        return t
+
     def log(self, data_name: str, data: Dict[str, np.ndarray]):
         """Log data asynchronously."""
         if not self.running:
@@ -366,7 +414,8 @@ class StreamingPickleLogger:
     def _get_file_handle(self, data_name: str):
         """Get or create file handle for a data name."""
         if data_name not in self.file_handles:
-            file_path = self.log_dir / f"{data_name}_{self.session_id}.pkl"
+            prefix = f"{self.file_prefix}_" if self.file_prefix else ""
+            file_path = self.log_dir / f"{prefix}{data_name}_{self.session_id}.pkl"
             self.file_handles[data_name] = open(file_path, 'ab')  # Append binary mode
         return self.file_handles[data_name]
     

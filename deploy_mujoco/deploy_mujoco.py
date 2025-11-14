@@ -42,7 +42,7 @@ if __name__ == "__main__":
     
     state_cmd = StateAndCmd(num_joints)
     policy_output = PolicyOutput(num_joints)
-    FSM_controller = FSM(state_cmd, policy_output, enable_logging=True, log_dir="mujoco_logs")
+    FSM_controller = FSM(state_cmd, policy_output, enable_logging=True, log_dir="ogs", log_prefix="sim")
     
     joystick = JoyStick()
     Running = True

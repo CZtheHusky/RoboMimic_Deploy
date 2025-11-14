@@ -84,5 +84,5 @@ Desktop.ini
 *.sqlite
 *.db
 *.onnx
-*_logs/
+*logs/
 debug.md

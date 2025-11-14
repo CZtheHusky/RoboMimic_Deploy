@@ -43,7 +43,7 @@ class Controller:
         
         self.state_cmd = StateAndCmd(self.num_joints)
         self.policy_output = PolicyOutput(self.num_joints)
-        self.FSM_controller = FSM(self.state_cmd, self.policy_output)
+        self.FSM_controller = FSM(self.state_cmd, self.policy_output, enable_logging=True, log_dir="logs", log_prefix="real")
         
         self.running = True
         self.counter_over_time = 0

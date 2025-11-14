@@ -67,8 +67,7 @@ git clone https://github.com/ccrpRepo/RoboMimic_Deploy.git
 
 ```bash
 cd RoboMimic_Deploy
-pip install numpy==1.20.0
-pip install onnx onnxruntime
+pip install numpy==1.20.0 onnx onnxruntime pygame scipy matplotlib pyyaml pydantic
 ```
 #### 2.2.3 安装unitree_sdk2_python
 

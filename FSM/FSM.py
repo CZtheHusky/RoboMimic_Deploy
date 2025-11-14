@@ -22,7 +22,7 @@ class FSMMode(Enum):
 
 class FSM:
     def __init__(self, state_cmd:StateAndCmd, policy_output:PolicyOutput, 
-                 enable_logging: bool = False, log_dir: str = "./logs"):
+                 enable_logging: bool = False, log_dir: str = "./logs", log_prefix: str = ""):
         self.state_cmd = state_cmd
         self.policy_output = policy_output
         self.cur_policy : FSMState
@@ -42,7 +42,8 @@ class FSM:
         # BeyondMimic with optional logging support
         self.beyond_mimic_policy = BeyondMimic(state_cmd, policy_output, 
                                                enable_logging=enable_logging, 
-                                               log_dir=log_dir)
+                                               log_dir=log_dir,
+                                               prefix=log_prefix)
         
         print("initalized all policies!!!")
         
