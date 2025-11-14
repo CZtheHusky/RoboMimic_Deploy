@@ -13,7 +13,7 @@ from common.data_logger import StreamingPickleLogger
 
 
 class BeyondMimic(FSMState):
-    def __init__(self, state_cmd:StateAndCmd, policy_output:PolicyOutput, enable_logging: bool = False, log_dir: str = "./logs/beyond_mimic"):
+    def __init__(self, state_cmd:StateAndCmd, policy_output:PolicyOutput, enable_logging: bool = False, log_dir: str = "./logs/beyond_mimic", prefix: str = ""):
         super().__init__()
         self.state_cmd = state_cmd
         self.policy_output = policy_output
@@ -23,18 +23,14 @@ class BeyondMimic(FSMState):
         self.counter_step = 0
         self.ref_motion_phase = 0
         
-        # Initialize data logger
+        # Data logger config (created on enter to avoid blocking switch)
         self.enable_logging = enable_logging
+        self.log_dir = log_dir
+        self.log_prefix = prefix
         self.data_logger = None
-        if enable_logging:
-            self.data_logger = StreamingPickleLogger(
-                log_dir=log_dir,
-                batch_size=50,  # Write every 50 samples
-                flush_interval=3.0,  # Flush every 3 seconds
-                max_queue_size=5000
-            )
-            self.data_logger.start()
-            print(f"Data logging enabled. Logs will be saved to: {log_dir}")
+        self._log_batch_size = 50
+        self._log_flush_interval = 3.0
+        self._log_max_queue = 5000
         
         current_dir = os.path.dirname(os.path.abspath(__file__))
         config_path = os.path.join(current_dir, "config", "BeyondMimic.yaml")
@@ -71,11 +67,42 @@ class BeyondMimic(FSMState):
                 self.input_name.append(inpt.name)
 
             print("BeyondMimic-like policy initializing ...")
+
+        # Load FixedPose gains for first-frame hold behavior
+        try:
+            fixedpose_cfg_path = os.path.join(PROJECT_ROOT, "policy", "fixedpose", "config", "FixedPose.yaml")
+            with open(fixedpose_cfg_path, "r") as f:
+                fixedpose_cfg = yaml.load(f, Loader=yaml.FullLoader)
+                self.fixedpose_kps = np.array(fixedpose_cfg["kps"], dtype=np.float32)
+                self.fixedpose_kds = np.array(fixedpose_cfg["kds"], dtype=np.float32)
+                self.fixedpose_joint2motor_idx = np.array(fixedpose_cfg["joint2motor_idx"], dtype=np.int32)
+        except Exception as e:
+            print(f"Warning: Failed to load FixedPose gains for first frame hold: {e}")
+            # Fallbacks if FixedPose config is not available
+            self.fixedpose_kps = self.kps_lab if hasattr(self, "kps_lab") else np.zeros_like(self.policy_output.kps)
+            self.fixedpose_kds = self.kds_lab if hasattr(self, "kds_lab") else np.zeros_like(self.policy_output.kds)
+            self.fixedpose_joint2motor_idx = np.arange(self.policy_output.actions.shape[0], dtype=np.int32)
     
     def enter(self):
         self.ref_motion_phase = 0.
         self.motion_time = 0
         self.counter_step = 0
+
+        # Create logger on enter (start of policy)
+        if self.enable_logging:
+            try:
+                self.data_logger = StreamingPickleLogger(
+                    log_dir=self.log_dir,
+                    batch_size=self._log_batch_size,
+                    flush_interval=self._log_flush_interval,
+                    max_queue_size=self._log_max_queue,
+                    file_prefix=self.log_prefix,
+                )
+                self.data_logger.start()
+                prefix_info = f" (prefix={self.log_prefix})" if self.log_prefix else ""
+                print(f"Data logging enabled. Logs will be saved to: {self.log_dir}{prefix_info}")
+            except Exception as e:
+                print(f"Warning: Failed to start data logger: {e}")
 
         observation = {}
         observation[self.input_name[0]] = np.zeros((1, self.num_obs), dtype=np.float32)
@@ -187,14 +214,38 @@ class BeyondMimic(FSMState):
         robot_quat = self.quat_mul(robot_quat, temp2)
         ref_anchor_ori_w = self.ref_body_quat_w[:, 7].squeeze(0)
 
+        # # 在第一帧提取当前机器人yaw方向，与参考动作yaw方向做差（与beyond mimic一致）
+        # if(self.counter_step < 1):
+        #     init_to_anchor = self.matrix_from_quat(self.yaw_quat(ref_anchor_ori_w))
+        #     world_to_anchor = self.matrix_from_quat(self.yaw_quat(robot_quat))
+        #     self.init_to_world = world_to_anchor @ init_to_anchor.T
+        #     print("self.init_to_world: ", self.init_to_world)
+        #     # First-frame policy output: hold current joint positions with FixedPose gains
+        #     try:
+        #         # Set actions to current joint positions for all mapped motors
+        #         for j, motor_idx in enumerate(self.fixedpose_joint2motor_idx):
+        #             self.policy_output.actions[motor_idx] = self.state_cmd.q[motor_idx]
+        #             self.policy_output.kps[motor_idx] = self.fixedpose_kps[j]
+        #             self.policy_output.kds[motor_idx] = self.fixedpose_kds[j]
+        #     except Exception as e:
+        #         print(f"Warning: Failed to apply first-frame hold output: {e}")
+        #     self.counter_step += 1
+        #     return
         # 在第一帧提取当前机器人yaw方向，与参考动作yaw方向做差（与beyond mimic一致）
-        if(self.counter_step < 2):
+        if(self.counter_step < 1):
             init_to_anchor = self.matrix_from_quat(self.yaw_quat(ref_anchor_ori_w))
             world_to_anchor = self.matrix_from_quat(self.yaw_quat(robot_quat))
             self.init_to_world = world_to_anchor @ init_to_anchor.T
             print("self.init_to_world: ", self.init_to_world)
-            self.counter_step += 1
-            return
+            # # First-frame policy output: hold current joint positions with FixedPose gains
+            # try:
+            #     # Set actions to current joint positions for all mapped motors
+            #     for j, motor_idx in enumerate(self.fixedpose_joint2motor_idx):
+            #         self.policy_output.actions[motor_idx] = self.state_cmd.q[motor_idx]
+            #         self.policy_output.kps[motor_idx] = self.fixedpose_kps[j]
+            #         self.policy_output.kds[motor_idx] = self.fixedpose_kds[j]
+            # except Exception as e:
+            #     print(f"Warning: Failed to apply first-frame hold output: {e}")
 
         motion_anchor_ori_b = self.matrix_from_quat(robot_quat).T @ self.init_to_world @ self.matrix_from_quat(ref_anchor_ori_w)
 
@@ -269,11 +320,20 @@ class BeyondMimic(FSMState):
         self.motion_time = 0
         self.counter_step = 0
         
-        # Stop data logger when exiting
+        # Stop data logger when exiting (non-blocking)
         if self.enable_logging and self.data_logger:
-            print("Flushing data logger...")
-            self.data_logger.stop()
-            print(f"Data logging stats: {self.data_logger.get_stats()}")
+            print("Flushing data logger asynchronously...")
+            try:
+                def _on_done(stats):
+                    print(f"Data logging stats: {stats}")
+                self.data_logger.stop_async(on_complete=_on_done)
+            except Exception:
+                # Fallback to blocking stop if async is unavailable
+                self.data_logger.stop()
+                print(f"Data logging stats: {self.data_logger.get_stats()}")
+            finally:
+                # Avoid further logging to the old instance
+                self.data_logger = None
         
         print("exited")
 
