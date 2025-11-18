@@ -18,6 +18,7 @@ class StateAndCmd:
         self.vel_cmd = np.zeros(3)
         self.skill_cmd = FSMCommand.INVALID
         self.base_quat = np.zeros(4)
+        self.oppo_state = None  # opponent / peer robot state
         # skill change cmd
         # self.skill_set = FSMCommand.SKILL_1
 

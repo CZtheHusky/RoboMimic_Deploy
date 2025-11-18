@@ -630,6 +630,163 @@ def plot_raw_actions_overlay(runs: List[Dict[str, Any]], joint_names_lab: List[s
                              'Raw Action', 'Raw Actions (All Runs)',
                              str(output_file), color_map=color_map)
 
+
+def _compute_error_stats(deltas: np.ndarray, joint_names: List[str]) -> Dict[str, Any]:
+    """
+    Compute overall and per-joint statistics for tracking errors.
+    deltas: shape (T, J)
+    """
+    stats: Dict[str, Any] = {}
+    if deltas.size == 0:
+        return stats
+
+    flat = deltas.reshape(-1)
+    abs_flat = np.abs(flat)
+
+    stats["mean"] = float(np.mean(flat))
+    stats["std"] = float(np.std(flat))
+    stats["min"] = float(np.min(flat))
+    stats["max"] = float(np.max(flat))
+    stats["mean_abs"] = float(np.mean(abs_flat))
+    stats["max_abs"] = float(np.max(abs_flat))
+
+    per_joint: Dict[str, Any] = {}
+    for j, name in enumerate(joint_names):
+        col = deltas[:, j]
+        abs_col = np.abs(col)
+        per_joint[name] = {
+            "mean": float(np.mean(col)),
+            "std": float(np.std(col)),
+            "min": float(np.min(col)),
+            "max": float(np.max(col)),
+            "mean_abs": float(np.mean(abs_col)),
+            "max_abs": float(np.max(abs_col)),
+        }
+    stats["per_joint"] = per_joint
+    return stats
+
+
+def analyze_tracking_error(
+    runs: List[Dict[str, Any]],
+    joint_names: List[str],
+    output_dir: Path,
+    color_map: Optional[Dict[str, Any]] = None,
+) -> None:
+    """
+    Compute and plot tracking error:
+      delta(t, j) = raw_qj[t+1, j] - target_pos_mj[t, j]
+    for each run, then:
+      - Save an overlay plot over all runs (per joint subplots)
+      - Save overall and per-run statistics to YAML.
+    """
+    if not runs:
+        return
+
+    num_joints = len(joint_names)
+    tracking_runs: List[Dict[str, Any]] = []
+    all_deltas: List[np.ndarray] = []
+    run_stats_list: List[Dict[str, Any]] = []
+
+    for run in runs:
+        obs = run.get("observations", None)
+        acts = run.get("actions", None)
+        if not obs or not acts:
+            continue
+
+        # Need obs[t+1] and acts[t] pairs
+        max_t = min(len(acts), len(obs) - 1)
+        if max_t <= 0:
+            continue
+
+        deltas = []
+        steps = []
+        for t in range(max_t):
+            o_next = obs[t + 1]
+            a_t = acts[t]
+            try:
+                q_next = np.array(o_next["raw_qj"], dtype=np.float32)
+                target_t = np.array(a_t["target_pos_mj"], dtype=np.float32)
+                if q_next.shape[0] != num_joints or target_t.shape[0] != num_joints:
+                    continue
+                deltas.append(q_next - target_t)
+                # Prefer action counter_step as the reference step index
+                cs = a_t.get("counter_step", t)
+                try:
+                    steps.append(int(np.atleast_1d(cs)[0]))
+                except Exception:
+                    steps.append(t)
+            except KeyError:
+                continue
+
+        if not deltas:
+            continue
+
+        deltas_arr = np.vstack(deltas)  # shape (T, J)
+        all_deltas.append(deltas_arr)
+
+        # Stats for this run
+        run_label = run.get("label", run.get("session_id", "unknown"))
+        session_id = run.get("session_id", "")
+        stats = _compute_error_stats(deltas_arr, joint_names)
+        stats["label"] = run_label
+        stats["session_id"] = session_id
+        run_stats_list.append(stats)
+
+        # Build proxy structure for overlay plotting
+        tracking_series = [
+            {"counter_step": steps[i], "tracking_delta": deltas_arr[i]}
+            for i in range(deltas_arr.shape[0])
+        ]
+        tracking_runs.append(
+            {
+                "session_id": session_id,
+                "label": run_label,
+                "tracking": tracking_series,
+            }
+        )
+
+    if not tracking_runs or not all_deltas:
+        print("No valid tracking error data to analyze.")
+        return
+
+    # Overall statistics across all runs
+    all_concat = np.vstack(all_deltas)
+    overall_stats = _compute_error_stats(all_concat, joint_names)
+
+    # Organize per-run stats as a dict keyed by run label (preferred),
+    # falling back to session_id if needed.
+    run_stats_map: Dict[str, Any] = {}
+    for s in run_stats_list:
+        key = s.get("label") or s.get("session_id") or f"run_{len(run_stats_map)}"
+        run_stats_map[key] = s
+
+    tracking_stats: Dict[str, Any] = {
+        "overall": overall_stats,
+        "runs": run_stats_map,
+    }
+
+    # Save statistics to YAML
+    stats_path = output_dir / "tracking_error_stats.yaml"
+    try:
+        with open(stats_path, "w") as f:
+            yaml.safe_dump(tracking_stats, f, sort_keys=False)
+        print(f"Tracking error statistics saved to: {stats_path}")
+    except Exception as e:
+        print(f"Warning: failed to write tracking error statistics YAML: {e}")
+
+    # Plot overlay of tracking error per joint
+    output_file = output_dir / "overlay_tracking_error.png"
+    plot_multi_joint_overlay(
+        tracking_runs,
+        source="tracking",
+        joint_names=joint_names,
+        data_key="tracking_delta",
+        ylabel="Tracking Error (rad)",
+        title="Tracking Error raw_qj[t+1] - target_pos_mj[t] (All Runs)",
+        filename=str(output_file),
+        color_map=color_map,
+    )
+
 def main():
     """Main analysis function."""
     import argparse
@@ -692,8 +849,8 @@ def main():
     # After both sim and real runs are labeled, treat them as a single group
     # and enforce that the longest sequence is at most 2x the shortest one.
     all_runs = sim_runs + robot_runs
-    enforce_length_ratio(all_runs, 'observations', max_ratio=2.0)
-    enforce_length_ratio(all_runs, 'actions', max_ratio=2.0)
+    # enforce_length_ratio(all_runs, 'observations', max_ratio=2.0)
+    # enforce_length_ratio(all_runs, 'actions', max_ratio=2.0)
 
     # Per-run timing analysis and interval aggregation (for observations/actions)
     timing_stats: Dict[str, Dict[str, Any]] = {}
@@ -790,6 +947,12 @@ def main():
 
     # Prepare runs list for overlay plots (shallow copies to avoid mutation).
     runs = [dict(r) for r in all_runs]
+
+    # Tracking error analysis: raw_qj[t+1] - target_pos_mj[t]
+    print("\n" + "="*60)
+    print("Analyzing tracking error (raw_qj[t+1] - target_pos_mj[t])...")
+    print("="*60)
+    analyze_tracking_error(runs, joint_names, analyze_dir, color_map=color_map)
 
     print("\n" + "="*60)
     print(f"Generating overlay plots for sim vs robot_{args.robot_id}...")
