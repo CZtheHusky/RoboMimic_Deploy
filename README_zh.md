@@ -30,16 +30,8 @@
 使用以下命令创建虚拟环境：
 
 ```bash
-conda create -n robomimic python=3.8
+conda create -n robomimic python=3.8 -y && conda activate robomimic
 ```
-
-### 1.2 激活虚拟环境
-
-```bash
-conda activate robomimic
-```
-
----
 
 ## 2. 安装依赖
 
@@ -48,7 +40,9 @@ conda activate robomimic
 PyTorch 是一个神经网络计算框架，用于模型训练和推理。使用以下命令安装：
 
 ```bash
-conda install pytorch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 pytorch-cuda=12.1 -c pytorch -c nvidia
+wget https://developer.download.nvidia.cn/compute/redist/jp/v511/pytorch/torch-2.0.0+nv23.05-cp38-cp38-linux_aarch64.whl
+pip install torch-2.0.0+nv23.05-cp38-cp38-linux_aarch64.whl
+# conda install pytorch==2.0.0 torchvision==0.18.1 torchaudio==2.3.1 pytorch-cuda=12.1 -c pytorch -c nvidia
 ```
 
 ### 2.2 安装 RoboMimic_Deploy
@@ -67,16 +61,10 @@ git clone https://github.com/ccrpRepo/RoboMimic_Deploy.git
 
 ```bash
 cd RoboMimic_Deploy
-pip install numpy==1.20.0 onnx onnxruntime pygame scipy matplotlib pyyaml pydantic
+pip install numpy==1.20.0 
+pip install onnx==1.17.0 onnxruntime==1.19.2 pygame scipy matplotlib pyyaml pydantic
 ```
-#### 2.2.3 安装unitree_sdk2_python
 
-```bash
-git clone https://github.com/unitreerobotics/unitree_sdk2_python.git
-cd unitree_sdk2_python
-pip install -e .
-```
----
 ## 运行代码
 
 ## 1. 运行Mujoco仿真代码
@@ -125,7 +113,7 @@ python deploy_mujoco/deploy_mujoco.py
 
 2. 运行deploy_real程序：
 ```bash
-python deploy_real/deploy_real.py
+python deploy_real/deploy_real_cpp.py
 ```
 3. Start键进入位控模式
 

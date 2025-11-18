@@ -298,8 +298,10 @@ class StreamingPickleLogger:
         flush_interval: float = 5.0,
         max_queue_size: int = 10000,
         file_prefix: str = "",
+        robot_uid: int = 0,
     ):
         self.log_dir = Path(log_dir)
+        self.log_dir = self.log_dir / f"robot_{robot_uid}"
         self.log_dir.mkdir(parents=True, exist_ok=True)
         
         self.file_prefix = file_prefix

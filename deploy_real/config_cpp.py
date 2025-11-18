@@ -22,6 +22,7 @@ class UnitreeConfig(Config):
 
 # Config for G1 robot
 class RobotConfig(Config):
+    robot_uid: int = 0
     unitree: UnitreeConfig = UnitreeConfig()
 
     odometry_type:str = "UNITREE"

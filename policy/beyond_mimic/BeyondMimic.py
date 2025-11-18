@@ -13,7 +13,7 @@ from common.data_logger import StreamingPickleLogger
 
 
 class BeyondMimic(FSMState):
-    def __init__(self, state_cmd:StateAndCmd, policy_output:PolicyOutput, enable_logging: bool = False, log_dir: str = "./logs/beyond_mimic", prefix: str = ""):
+    def __init__(self, state_cmd:StateAndCmd, policy_output:PolicyOutput, enable_logging: bool = False, log_dir: str = "./logs/beyond_mimic", prefix: str = "", robot_uid: int = 0):
         super().__init__()
         self.state_cmd = state_cmd
         self.policy_output = policy_output
@@ -31,6 +31,7 @@ class BeyondMimic(FSMState):
         self._log_batch_size = 50
         self._log_flush_interval = 3.0
         self._log_max_queue = 5000
+        self.robot_uid = robot_uid
         
         current_dir = os.path.dirname(os.path.abspath(__file__))
         config_path = os.path.join(current_dir, "config", "BeyondMimic.yaml")
@@ -97,6 +98,7 @@ class BeyondMimic(FSMState):
                     flush_interval=self._log_flush_interval,
                     max_queue_size=self._log_max_queue,
                     file_prefix=self.log_prefix,
+                    robot_uid=self.robot_uid
                 )
                 self.data_logger.start()
                 prefix_info = f" (prefix={self.log_prefix})" if self.log_prefix else ""
