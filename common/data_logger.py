@@ -301,7 +301,8 @@ class StreamingPickleLogger:
         robot_uid: int = 0,
     ):
         self.log_dir = Path(log_dir)
-        self.log_dir = self.log_dir / f"robot_{robot_uid}"
+        if robot_uid is not None:
+            self.log_dir = self.log_dir / f"robot_{robot_uid}"
         self.log_dir.mkdir(parents=True, exist_ok=True)
         
         self.file_prefix = file_prefix

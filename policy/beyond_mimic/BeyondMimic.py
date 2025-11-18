@@ -10,6 +10,7 @@ import onnxruntime
 import torch
 import os
 from common.data_logger import StreamingPickleLogger
+import time
 
 
 class BeyondMimic(FSMState):
@@ -198,6 +199,9 @@ class BeyondMimic(FSMState):
             return np.array([w, x, y, z])
 
     def run(self):
+        obs_log_data = {
+            "inf_start": time.monotonic(),
+        }
         robot_quat = self.state_cmd.base_quat
         
         qj = self.state_cmd.q[self.mj2lab]
@@ -270,10 +274,32 @@ class BeyondMimic(FSMState):
         # obs0 是网络观测，obs1 是当前时间步，用于输出参考动作信息
         observation[self.input_name[0]] = mimic_obs_tensor
         observation[self.input_name[1]] = np.array([[self.counter_step]], dtype=np.float32)
+        obs_log_data['before_nn'] = time.monotonic()
+        outputs_result = self.ort_session.run(None, observation)
+        obs_log_data['after_nn'] = time.monotonic()
+
+        # 处理多个输出
+        self.action, self.ref_joint_pos, self.ref_joint_vel, _, self.ref_body_quat_w, _, _ = outputs_result
+        target_dof_pos_mj = np.zeros(29)
+        target_dof_pos_lab = self.action * self.action_scale_lab + self.default_angles_lab
+        target_dof_pos_mj[self.mj2lab] = target_dof_pos_lab.squeeze(0)
         
-        # Log observations before policy inference
+
+        
+        self.policy_output.actions = target_dof_pos_mj
+        self.policy_output.kps[self.mj2lab] = self.kps_lab
+        self.policy_output.kds[self.mj2lab] = self.kds_lab
+
+        # Log actions after policy inference
         if self.enable_logging and self.data_logger:
-            obs_log_data = {
+            action_log_data = {
+                "raw_action": self.action.squeeze(0),
+                "target_pos_mj": target_dof_pos_mj,
+                "kps": self.kps_lab,
+                "kds": self.kds_lab,
+                "counter_step": np.array([self.counter_step], dtype=np.int32),
+            }
+            obs_log_data.update({
                 "robot_quat": robot_quat,
                 "raw_qj": self.state_cmd.q[self.mj2lab],
                 "raw_qvel": dqj[self.mj2lab],
@@ -285,32 +311,10 @@ class BeyondMimic(FSMState):
                 "motion_anchor_ori": motion_anchor_ori_b[:,:2].reshape(-1),
                 "ang_vel": ang_vel,
                 "counter_step": np.array([self.counter_step], dtype=np.int32),
-            }
+                "inf_end": time.monotonic(),
+            })
             self.data_logger.log("observations", obs_log_data)
-        
-        outputs_result = self.ort_session.run(None, observation)
-
-        # 处理多个输出
-        self.action, self.ref_joint_pos, self.ref_joint_vel, _, self.ref_body_quat_w, _, _ = outputs_result
-        target_dof_pos_mj = np.zeros(29)
-        target_dof_pos_lab = self.action * self.action_scale_lab + self.default_angles_lab
-        target_dof_pos_mj[self.mj2lab] = target_dof_pos_lab.squeeze(0)
-        
-        # Log actions after policy inference
-        if self.enable_logging and self.data_logger:
-            action_log_data = {
-                "raw_action": self.action.squeeze(0),
-                "target_pos_mj": target_dof_pos_mj,
-                "kps": self.kps_lab,
-                "kds": self.kds_lab,
-                "counter_step": np.array([self.counter_step], dtype=np.int32),
-            }
             self.data_logger.log("actions", action_log_data)
-        
-        self.policy_output.actions = target_dof_pos_mj
-        self.policy_output.kps[self.mj2lab] = self.kps_lab
-        self.policy_output.kds[self.mj2lab] = self.kds_lab
-        
         # update motion phase
         self.counter_step += 1
 

@@ -22,7 +22,7 @@ class FSMMode(Enum):
 
 class FSM:
     def __init__(self, state_cmd:StateAndCmd, policy_output:PolicyOutput, 
-                 enable_logging: bool = False, log_dir: str = "./logs", log_prefix: str = "", robot_uid: int = 0):
+                 enable_logging: bool = False, log_dir: str = "./logs", log_prefix: str = "", robot_uid: int = None):
         self.state_cmd = state_cmd
         self.policy_output = policy_output
         self.cur_policy : FSMState
