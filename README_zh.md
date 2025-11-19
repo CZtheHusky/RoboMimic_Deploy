@@ -50,24 +50,19 @@ wget https://developer.download.nvidia.cn/compute/redist/jp/v511/pytorch/torch-2
 pip install torch-2.0.0+nv23.05-cp38-cp38-linux_aarch64.whl
 ```
 
-### 2.2 安装 RoboMimic_Deploy
+### 2.2 安装 unitree_cpp
 
-#### 2.2.1 下载
+前往页面 [unitree_cpp](https://github.com/HansZ8/unitree_cpp) 下载并安装 unitree_cpp 库：
 
-通过 Git 克隆仓库：
 
-```bash
-git clone https://github.com/ccrpRepo/RoboMimic_Deploy.git
-```
-
-#### 2.2.2 安装组件
+### 2.3 安装 RoboMimic_Deploy
 
 进入目录并安装：
 
 ```bash
 cd RoboMimic_Deploy
-pip install onnx==1.17.0 onnxruntime==1.19.2 pygame scipy matplotlib pyyaml pydantic
 pip install numpy==1.20.0 
+pip install onnx==1.17.0 onnxruntime==1.19.2 pygame scipy matplotlib pyyaml pydantic
 ```
 
 ## 运行代码
@@ -111,26 +106,14 @@ python deploy_real/deploy_real_cpp.py
 1. Start键进入位控模式，此时将机器人放下，应该可以稳定站立不动。
 
 2. 后续操作与仿真中一致
-
-### 2. Mimic策略可靠性警告
+---
+## 注意事项
+### 1. Mimic策略可靠性警告
 Mimic策略不保证100%成功率，特别是在湿滑/沙地等复杂地面上。若出现机器人失控情况：
 - 按下`F1`键激活**阻尼保护模式**(PassiveMode)
 - 按下`Select`键立即终止控制程序
 
-### 3. 查尔斯顿舞蹈(R1+X) - 稳定策略说明
-目前唯一在真机上验证稳定的策略：
-
-⚠️ **重要注意事项**：
-- **建议拆除手掌**：原始训练未考虑手掌碰撞（作者的G1初始无手掌）
-- **起止稳定需求**：舞蹈开始/结束时可能需要短暂人工稳定
-- **舞蹈后过渡**：虽然可以切换至**行走模式/位控模式/阻尼模式**，但建议：
-  - 先切换至**位控模式**或**阻尼模式**
-  - 过渡期间需提供人工稳定
-
-### 4. 其他动作建议
-其他所有动作目前均**不建议**在真机上部署。
-
-### 5. 强烈建议
+### 4. 强烈建议
 **务必**先在仿真环境中熟练操作，再尝试真机部署。
 
 
