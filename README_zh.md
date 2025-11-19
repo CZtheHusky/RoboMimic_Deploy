@@ -66,8 +66,8 @@ git clone https://github.com/ccrpRepo/RoboMimic_Deploy.git
 
 ```bash
 cd RoboMimic_Deploy
-pip install numpy==1.20.0 
 pip install onnx==1.17.0 onnxruntime==1.19.2 pygame scipy matplotlib pyyaml pydantic
+pip install numpy==1.20.0 
 ```
 
 ## 运行代码
@@ -83,10 +83,6 @@ python deploy_mujoco/deploy_mujoco.py
 | **PassiveMode**  | 阻尼保护模式                                                         |
 | **FixedPose**    | 位控恢复至默认关节值                                                 |
 | **LocoMode**     | 用于稳定行走的控制模式                                               |
-| **Dance**        | 查尔斯顿舞蹈                                                         |
-| **KungFu**       | 武术动作                                                             |
-| **KungFu2**      | 训练失败的武术动作                                                   |
-| **Kick**         | 拿来凑数的动作                                                       |
 | **SkillCast**    | 下肢+腰部稳定站立，上肢位控至特定关节角，一般在执行Mimic策略前执行   |
 | **SkillCooldown**| 下肢+腰部持续平衡，上肢恢复至默认关节角，一般在执行Mimic策略后执行    |
 
@@ -103,15 +99,7 @@ python deploy_mujoco/deploy_mujoco.py
 
 4. 同时按住R1+A，进入LocoMode，并按下`BACKSPACE`在仿真中使机器人站立，之后能通过摇杆控制机器人行走
 
-5. 同时按住R1+X，进入Dance，机器人开始跳查尔斯顿舞蹈，在该模式下，可以随时按下Select进入阻尼保护模式，也可以按住R1+A恢复行走模式（不推荐），或按Start进入位控模式（不推荐）
-
-6. 终端会显示舞蹈的进度条，结束后可按下R1+A恢复至正常行走模式
-
-7. 在LocoMode模式下，按R1+Y让机器人表演武术动作，**只推荐在仿真中使用**
-
-8. 在LocoMode模式下，按L1+Y让机器人表演训练失败的武术动作，**只推荐在仿真中使用**
-
-9. 在LocoMode模式下，按R1+B让机器人表演踢腿动作，**只推荐在仿真中使用**
+5. 同时按住L1+Y，执行beyond_mimic策略。
 ---
 ## 4. 真机操作说明
 1. 开机后将机器人吊起来，按L2+R2进入调试模式
@@ -120,19 +108,9 @@ python deploy_mujoco/deploy_mujoco.py
 ```bash
 python deploy_real/deploy_real_cpp.py
 ```
-3. Start键进入位控模式
+1. Start键进入位控模式，此时将机器人放下，应该可以稳定站立不动。
 
-4. 后续操作与仿真中一致
-
----
-## 注意事项
-### 1. 框架兼容性说明
-当前框架暂不支持在搭载Orin NX平台的G1机器人上直接部署。初步分析可能是由于`unitree_python_sdk`在Orin平台上的兼容性问题。针对机载Orin平台的部署需求，建议采用以下替代方案：
-
-- 使用[unitree_sdk2](https://github.com/unitreerobotics/unitree_sdk2)替代原Python SDK
-- 基于ROS构建双节点架构：
-  - **C++节点**：负责机器人与遥控器之间的数据收发
-  - **Python节点**：专用于策略推理
+2. 后续操作与仿真中一致
 
 ### 2. Mimic策略可靠性警告
 Mimic策略不保证100%成功率，特别是在湿滑/沙地等复杂地面上。若出现机器人失控情况：
