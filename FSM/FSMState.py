@@ -7,6 +7,7 @@ class FSMState:
         self.name = FSMStateName.INVALID
         self.name_str = "invalid"
         self.control_dt = 0.02
+
     def enter(self):
         raise NotImplementedError("enter() function must be implement!")
     
@@ -16,7 +17,11 @@ class FSMState:
     def exit(self):
         raise NotImplementedError("exit() function must be implement!")
     
-    def checkChange(self):
-        # joystick callback
-        raise NotImplementedError("checkChange() function must be implement!")
+    def internal_check(self):
+        """
+        State-internal transition logic that does not depend on external
+        commands (for example, motion finished).
+        Should return a FSMStateName or None.
+        """
+        return None
         

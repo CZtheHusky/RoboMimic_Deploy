@@ -1,7 +1,7 @@
 from common.path_config import PROJECT_ROOT
 
 from FSM.FSMState import FSMStateName, FSMState
-from common.ctrlcomp import StateAndCmd, PolicyOutput, FSMCommand
+from common.ctrlcomp import StateAndCmd, PolicyOutput
 from common.utils import scale_values
 import numpy as np
 import yaml
@@ -108,18 +108,3 @@ class LocoMode(FSMState):
     
     def exit(self):
         pass
-    
-    def checkChange(self):
-        if(self.state_cmd.skill_cmd == FSMCommand.SKILL_1):
-            return FSMStateName.SKILL_Dance
-        elif(self.state_cmd.skill_cmd == FSMCommand.SKILL_2):
-            return FSMStateName.SKILL_KungFu
-        elif(self.state_cmd.skill_cmd == FSMCommand.SKILL_3):
-            return FSMStateName.SKILL_KICK
-        elif(self.state_cmd.skill_cmd == FSMCommand.SKILL_4):
-            return FSMStateName.SKILL_BEYOND_MIMIC
-        elif(self.state_cmd.skill_cmd == FSMCommand.PASSIVE):
-            return FSMStateName.PASSIVE
-        else:
-            return FSMStateName.LOCOMODE
-        

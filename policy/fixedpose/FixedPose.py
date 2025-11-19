@@ -4,8 +4,8 @@ from FSM.FSMState import FSMStateName, FSMState
 from common.ctrlcomp import StateAndCmd, PolicyOutput
 import numpy as np
 import yaml
-from common.utils import FSMCommand
 import os
+
 
 class FixedPose(FSMState):
     def __init__(self, state_cmd:StateAndCmd, policy_output:PolicyOutput):
@@ -55,26 +55,7 @@ class FixedPose(FSMState):
             self.policy_output.actions[motor_idx] = self.default_angles[j]
             self.policy_output.kps[motor_idx] = self.kps[j]
             self.policy_output.kds[motor_idx] = self.kds[j]
-    
-    def checkChange(self):
-        if(self.state_cmd.skill_cmd == FSMCommand.LOCO):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.LOCOMODE
-        elif(self.state_cmd.skill_cmd == FSMCommand.SKILL_1):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.SKILL_Dance
-        elif(self.state_cmd.skill_cmd == FSMCommand.SKILL_2):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.SKILL_KungFu
-        elif(self.state_cmd.skill_cmd == FSMCommand.SKILL_3):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.SKILL_KICK
-        elif(self.state_cmd.skill_cmd == FSMCommand.SKILL_4):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.SKILL_BEYOND_MIMIC
-        elif(self.state_cmd.skill_cmd == FSMCommand.PASSIVE):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.PASSIVE
-        else:
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.FIXEDPOSE
+
+    def internal_check(self):
+        # FixedPose 不基于时间自动跳转；外部命令交给 FSM 处理。
+        return None

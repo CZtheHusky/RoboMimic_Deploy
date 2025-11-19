@@ -1,11 +1,12 @@
 from common.path_config import PROJECT_ROOT
 
 from FSM.FSMState import FSMStateName, FSMState
-from common.ctrlcomp import StateAndCmd, PolicyOutput, FSMCommand
+from common.ctrlcomp import StateAndCmd, PolicyOutput
 import numpy as np
 import yaml
 import torch
 import os
+
 
 class SkillCooldown(FSMState):
     def __init__(self, state_cmd:StateAndCmd, policy_output:PolicyOutput):
@@ -111,14 +112,8 @@ class SkillCooldown(FSMState):
     def exit(self):
         pass
     
-    def checkChange(self):
-        if(self.cur_step >= self.num_step):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
+    def internal_check(self):
+        if self.cur_step >= self.num_step:
             return FSMStateName.LOCOMODE
-        elif(self.state_cmd.skill_cmd == FSMCommand.PASSIVE):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.PASSIVE
-        else:
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.SKILL_COOLDOWN
+        return None
         

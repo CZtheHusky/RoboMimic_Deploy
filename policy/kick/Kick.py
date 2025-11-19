@@ -4,7 +4,7 @@ from FSM.FSMState import FSMStateName, FSMState
 from common.ctrlcomp import StateAndCmd, PolicyOutput
 import numpy as np
 import yaml
-from common.utils import FSMCommand, progress_bar
+from common.utils import progress_bar
 import onnx
 import onnxruntime
 import torch
@@ -157,17 +157,6 @@ class Kick(FSMState):
         self.counter_step = 0
         print()
 
-    
-    def checkChange(self):
-        if(self.state_cmd.skill_cmd == FSMCommand.LOCO):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.SKILL_COOLDOWN
-        elif(self.state_cmd.skill_cmd == FSMCommand.PASSIVE):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.PASSIVE
-        elif(self.state_cmd.skill_cmd == FSMCommand.POS_RESET):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.FIXEDPOSE
-        else:
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.SKILL_KICK
+    def internal_check(self):
+        # Kick 内部没有自动跳转条件，外部命令由 FSM 处理。
+        return None

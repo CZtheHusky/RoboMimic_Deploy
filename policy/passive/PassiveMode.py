@@ -4,8 +4,9 @@ from FSM.FSMState import FSMState
 from common.ctrlcomp import StateAndCmd, PolicyOutput
 import numpy as np
 import yaml
-from common.utils import FSMStateName, FSMCommand
+from common.utils import FSMStateName
 import os
+
 
 class PassiveMode(FSMState):
     def __init__(self, state_cmd:StateAndCmd, policy_output:PolicyOutput):
@@ -37,13 +38,5 @@ class PassiveMode(FSMState):
     def exit(self):
         self.policy_output.kps = np.zeros(self.state_cmd.num_joints)
         self.policy_output.kds = self.kds.copy()
-        
-    
-    def checkChange(self):
-        if(self.state_cmd.skill_cmd == FSMCommand.POS_RESET):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.FIXEDPOSE
-        else:
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.PASSIVE
+
         

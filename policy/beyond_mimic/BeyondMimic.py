@@ -4,7 +4,7 @@ from FSM.FSMState import FSMStateName, FSMState
 from common.ctrlcomp import StateAndCmd, PolicyOutput
 import numpy as np
 import yaml
-from common.utils import FSMCommand, progress_bar
+from common.utils import progress_bar
 import onnx
 import onnxruntime
 import torch
@@ -220,38 +220,11 @@ class BeyondMimic(FSMState):
         robot_quat = self.quat_mul(robot_quat, temp2)
         ref_anchor_ori_w = self.ref_body_quat_w[:, 7].squeeze(0)
 
-        # # 在第一帧提取当前机器人yaw方向，与参考动作yaw方向做差（与beyond mimic一致）
-        # if(self.counter_step < 1):
-        #     init_to_anchor = self.matrix_from_quat(self.yaw_quat(ref_anchor_ori_w))
-        #     world_to_anchor = self.matrix_from_quat(self.yaw_quat(robot_quat))
-        #     self.init_to_world = world_to_anchor @ init_to_anchor.T
-        #     print("self.init_to_world: ", self.init_to_world)
-        #     # First-frame policy output: hold current joint positions with FixedPose gains
-        #     try:
-        #         # Set actions to current joint positions for all mapped motors
-        #         for j, motor_idx in enumerate(self.fixedpose_joint2motor_idx):
-        #             self.policy_output.actions[motor_idx] = self.state_cmd.q[motor_idx]
-        #             self.policy_output.kps[motor_idx] = self.fixedpose_kps[j]
-        #             self.policy_output.kds[motor_idx] = self.fixedpose_kds[j]
-        #     except Exception as e:
-        #         print(f"Warning: Failed to apply first-frame hold output: {e}")
-        #     self.counter_step += 1
-        #     return
-        # 在第一帧提取当前机器人yaw方向，与参考动作yaw方向做差（与beyond mimic一致）
         if(self.counter_step < 1):
             init_to_anchor = self.matrix_from_quat(self.yaw_quat(ref_anchor_ori_w))
             world_to_anchor = self.matrix_from_quat(self.yaw_quat(robot_quat))
             self.init_to_world = world_to_anchor @ init_to_anchor.T
             print("self.init_to_world: ", self.init_to_world)
-            # # First-frame policy output: hold current joint positions with FixedPose gains
-            # try:
-            #     # Set actions to current joint positions for all mapped motors
-            #     for j, motor_idx in enumerate(self.fixedpose_joint2motor_idx):
-            #         self.policy_output.actions[motor_idx] = self.state_cmd.q[motor_idx]
-            #         self.policy_output.kps[motor_idx] = self.fixedpose_kps[j]
-            #         self.policy_output.kds[motor_idx] = self.fixedpose_kds[j]
-            # except Exception as e:
-            #     print(f"Warning: Failed to apply first-frame hold output: {e}")
 
         motion_anchor_ori_b = self.matrix_from_quat(robot_quat).T @ self.init_to_world @ self.matrix_from_quat(ref_anchor_ori_w)
 
@@ -343,18 +316,7 @@ class BeyondMimic(FSMState):
         
         print("exited")
 
-    
-    def checkChange(self):
-        if(self.state_cmd.skill_cmd == FSMCommand.LOCO):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.SKILL_COOLDOWN
-        elif(self.state_cmd.skill_cmd == FSMCommand.PASSIVE):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.PASSIVE
-        elif(self.state_cmd.skill_cmd == FSMCommand.POS_RESET):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.FIXEDPOSE
-        else:
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.SKILL_BEYOND_MIMIC
+    def internal_check(self):
+        # BeyondMimic 内部没有自动跳转条件，外部命令由 FSM 处理。
+        return None
        

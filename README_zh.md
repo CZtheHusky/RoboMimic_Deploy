@@ -44,7 +44,7 @@ PyTorch 是一个神经网络计算框架，用于模型训练和推理。使用
 
 ```bash
 # for mujoco
-conda install pytorch==2.0.0 torchvision==0.18.1 pytorch-cuda=12.1 -c pytorch -c nvidia
+conda install pytorch torchvision pytorch-cuda=12.1 -c pytorch -c nvidia
 # for g1
 wget https://developer.download.nvidia.cn/compute/redist/jp/v511/pytorch/torch-2.0.0+nv23.05-cp38-cp38-linux_aarch64.whl
 pip install torch-2.0.0+nv23.05-cp38-cp38-linux_aarch64.whl

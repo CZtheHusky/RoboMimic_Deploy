@@ -1,7 +1,7 @@
 from common.path_config import PROJECT_ROOT
 
 from FSM.FSMState import FSMStateName, FSMState
-from common.ctrlcomp import StateAndCmd, PolicyOutput, FSMCommand
+from common.ctrlcomp import StateAndCmd, PolicyOutput
 import numpy as np
 import yaml
 import torch
@@ -98,15 +98,8 @@ class SkillCast(FSMState):
         self.policy_output.kds = self.kds.copy()
         
         ###########################################################
-        if(self.state_cmd.skill_cmd == FSMCommand.SKILL_1):
-            self.upper_dof_target = self.upper_target_angles_skill_1
-        elif(self.state_cmd.skill_cmd == FSMCommand.SKILL_2):
-            self.upper_dof_target = self.upper_target_angles_skill_2
-        elif(self.state_cmd.skill_cmd == FSMCommand.SKILL_4):
-            self.upper_dof_target = self.upper_target_angles_skill_4
-        else:
-            self.upper_dof_target = self.default_angles[self.upper_body_motor_idx]
-        
+        # 这里示例为统一的技能准备姿态，可以按需要扩展。
+        self.upper_dof_target = self.upper_target_angles_skill_1
         
         self.cur_step += 1
         self.alpha = min(self.cur_step / self.num_step, 1.0)
@@ -119,20 +112,7 @@ class SkillCast(FSMState):
     def exit(self):
         pass
     
-    def checkChange(self):
-        if(self.cur_step >= self.num_step and self.state_cmd.skill_cmd == FSMCommand.SKILL_1):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.SKILL_Dance
-        elif(self.cur_step >= self.num_step and self.state_cmd.skill_cmd == FSMCommand.SKILL_2):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.SKILL_KungFu
-        elif(self.cur_step >= self.num_step and self.state_cmd.skill_cmd == FSMCommand.SKILL_4):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.SKILL_KungFu2
-        elif(self.state_cmd.skill_cmd == FSMCommand.PASSIVE):
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.PASSIVE
-        else:
-            self.state_cmd.skill_cmd = FSMCommand.INVALID
+    def internal_check(self):
+        if self.cur_step >= self.num_step:
             return FSMStateName.SKILL_COOLDOWN
-        
+        return None
