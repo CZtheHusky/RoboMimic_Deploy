@@ -30,6 +30,9 @@
 使用以下命令创建虚拟环境：
 
 ```bash
+# for mujoco
+conda create -n robomimic python=3.10 -y && conda activate robomimic
+# for g1
 conda create -n robomimic python=3.8 -y && conda activate robomimic
 ```
 
@@ -40,9 +43,11 @@ conda create -n robomimic python=3.8 -y && conda activate robomimic
 PyTorch 是一个神经网络计算框架，用于模型训练和推理。使用以下命令安装：
 
 ```bash
+# for mujoco
+conda install pytorch==2.0.0 torchvision==0.18.1 pytorch-cuda=12.1 -c pytorch -c nvidia
+# for g1
 wget https://developer.download.nvidia.cn/compute/redist/jp/v511/pytorch/torch-2.0.0+nv23.05-cp38-cp38-linux_aarch64.whl
 pip install torch-2.0.0+nv23.05-cp38-cp38-linux_aarch64.whl
-# conda install pytorch==2.0.0 torchvision==0.18.1 torchaudio==2.3.1 pytorch-cuda=12.1 -c pytorch -c nvidia
 ```
 
 ### 2.2 安装 RoboMimic_Deploy
