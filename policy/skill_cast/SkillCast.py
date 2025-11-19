@@ -12,7 +12,7 @@ class SkillCast(FSMState):
         super().__init__()
         self.state_cmd = state_cmd
         self.policy_output = policy_output
-        self.name = FSMStateName.SKILL_COOLDOWN
+        self.name = FSMStateName.SKILL_CAST
         self.name_str = "skill_cast"
         self.alpha = 0.
         self.cur_step = 0
