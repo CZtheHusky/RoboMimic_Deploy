@@ -166,10 +166,6 @@ class Controller:
                 self.state_cmd.skill_cmd = FSMCommand.POS_RESET
             if self.remote_controller.is_button_pressed(KeyMap.A) and self.remote_controller.is_button_pressed(KeyMap.R1):
                 self.state_cmd.skill_cmd = FSMCommand.LOCO
-            if self.remote_controller.is_button_pressed(KeyMap.X) and self.remote_controller.is_button_pressed(KeyMap.R1):
-                self.state_cmd.skill_cmd = FSMCommand.SKILL_1
-            if self.remote_controller.is_button_pressed(KeyMap.Y) and self.remote_controller.is_button_pressed(KeyMap.R1):
-                self.state_cmd.skill_cmd = FSMCommand.SKILL_2
             if self.remote_controller.is_button_pressed(KeyMap.Y) and self.remote_controller.is_button_pressed(KeyMap.L1):
                 self.state_cmd.skill_cmd = FSMCommand.SKILL_4
             # Set velocity commands from joystick

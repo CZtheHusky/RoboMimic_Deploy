@@ -3,12 +3,8 @@ from common.path_config import PROJECT_ROOT
 from policy.passive.PassiveMode import PassiveMode
 from policy.fixedpose.FixedPose import FixedPose
 from policy.loco_mode.LocoMode import LocoMode
-from policy.kungfu.KungFu import KungFu
-from policy.dance.Dance import Dance
 from policy.skill_cooldown.SkillCooldown import SkillCooldown
 from policy.skill_cast.SkillCast import SkillCast
-from policy.kick.Kick import Kick
-from policy.kungfu2.KungFu2 import KungFu2
 from policy.beyond_mimic.BeyondMimic import BeyondMimic
 from FSM.FSMState import FSMState, FSMStateName
 from common.ctrlcomp import StateAndCmd, PolicyOutput, FSMCommand
@@ -34,12 +30,14 @@ class FSM:
         self.passive_mode = PassiveMode(state_cmd, policy_output)
         self.fixed_pose_1 = FixedPose(state_cmd, policy_output)
         self.loco_policy = LocoMode(state_cmd, policy_output)
-        self.kungfu_policy = KungFu(state_cmd, policy_output)
-        self.dance_policy = Dance(state_cmd, policy_output)
         self.skill_cooldown_policy = SkillCooldown(state_cmd, policy_output)
         self.skill_cast_policy = SkillCast(state_cmd, policy_output)
-        self.kick_policy = Kick(state_cmd, policy_output)
-        self.kungfu2_policy = KungFu2(state_cmd, policy_output)
+        # BeyondMimic with optional logging support
+        self.beyond_mimic_policy = BeyondMimic(state_cmd, policy_output, 
+                                               enable_logging=enable_logging, 
+                                               log_dir=log_dir,
+                                               prefix=log_prefix,
+                                               robot_uid=robot_uid)
         # BeyondMimic with optional logging support
         self.beyond_mimic_policy = BeyondMimic(state_cmd, policy_output, 
                                                enable_logging=enable_logging, 
@@ -52,12 +50,8 @@ class FSM:
             FSMStateName.PASSIVE: self.passive_mode,
             FSMStateName.FIXEDPOSE: self.fixed_pose_1,
             FSMStateName.LOCOMODE: self.loco_policy,
-            FSMStateName.SKILL_KungFu: self.kungfu_policy,
-            FSMStateName.SKILL_Dance: self.dance_policy,
             FSMStateName.SKILL_COOLDOWN: self.skill_cooldown_policy,
             FSMStateName.SKILL_CAST: self.skill_cast_policy,
-            FSMStateName.SKILL_KICK: self.kick_policy,
-            FSMStateName.SKILL_KungFu2: self.kungfu2_policy,
             FSMStateName.SKILL_BEYOND_MIMIC: self.beyond_mimic_policy,
         }
 
@@ -68,39 +62,13 @@ class FSM:
             },
             FSMStateName.FIXEDPOSE: {
                 FSMCommand.LOCO: FSMStateName.LOCOMODE,
-                FSMCommand.SKILL_1: FSMStateName.SKILL_Dance,
-                FSMCommand.SKILL_2: FSMStateName.SKILL_KungFu,
-                FSMCommand.SKILL_3: FSMStateName.SKILL_KICK,
                 FSMCommand.SKILL_4: FSMStateName.SKILL_BEYOND_MIMIC,
                 FSMCommand.PASSIVE: FSMStateName.PASSIVE,
             },
             FSMStateName.LOCOMODE: {
                 FSMCommand.POS_RESET: FSMStateName.FIXEDPOSE,
-                FSMCommand.SKILL_1: FSMStateName.SKILL_Dance,
-                FSMCommand.SKILL_2: FSMStateName.SKILL_KungFu,
-                FSMCommand.SKILL_3: FSMStateName.SKILL_KICK,
                 FSMCommand.SKILL_4: FSMStateName.SKILL_BEYOND_MIMIC,
                 FSMCommand.PASSIVE: FSMStateName.PASSIVE,
-            },
-            FSMStateName.SKILL_Dance: {
-                FSMCommand.LOCO: FSMStateName.SKILL_COOLDOWN,
-                FSMCommand.PASSIVE: FSMStateName.PASSIVE,
-                FSMCommand.POS_RESET: FSMStateName.FIXEDPOSE,
-            },
-            FSMStateName.SKILL_KungFu: {
-                FSMCommand.LOCO: FSMStateName.SKILL_COOLDOWN,
-                FSMCommand.PASSIVE: FSMStateName.PASSIVE,
-                FSMCommand.POS_RESET: FSMStateName.FIXEDPOSE,
-            },
-            FSMStateName.SKILL_KungFu2: {
-                FSMCommand.LOCO: FSMStateName.SKILL_COOLDOWN,
-                FSMCommand.PASSIVE: FSMStateName.PASSIVE,
-                FSMCommand.POS_RESET: FSMStateName.FIXEDPOSE,
-            },
-            FSMStateName.SKILL_KICK: {
-                FSMCommand.LOCO: FSMStateName.SKILL_COOLDOWN,
-                FSMCommand.PASSIVE: FSMStateName.PASSIVE,
-                FSMCommand.POS_RESET: FSMStateName.FIXEDPOSE,
             },
             FSMStateName.SKILL_BEYOND_MIMIC: {
                 FSMCommand.LOCO: FSMStateName.SKILL_COOLDOWN,

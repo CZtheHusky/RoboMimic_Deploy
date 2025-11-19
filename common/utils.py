@@ -11,10 +11,6 @@ class FSMStateName(Enum):
     SKILL_COOLDOWN = 3
     LOCOMODE = 4
     SKILL_CAST = 5
-    SKILL_KungFu = 6
-    SKILL_Dance = 7
-    SKILL_KICK = 8
-    SKILL_KungFu2 = 9
     SKILL_BEYOND_MIMIC = 10
    
 
@@ -24,9 +20,6 @@ class FSMCommand(Enum):
     POS_RESET = 1
     LOCO = 2
     PASSIVE = 4
-    SKILL_1 = 5
-    SKILL_2 = 6
-    SKILL_3 = 7
     SKILL_4 = 8
     
     
